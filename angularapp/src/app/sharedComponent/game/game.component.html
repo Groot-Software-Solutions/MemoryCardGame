@@ -1,0 +1,43 @@
+<div class="container">
+    <div class="row">
+      <div *ngIf="!gameStarted">
+        <h3>Welcome to Memory Game!</h3>
+        <input type="text" id="usernameTb" class="form-control"/>
+        <button (click)="joinGame()">Join Game</button>
+      </div>
+      <div *ngIf="gameStarted">
+        <h3>Welcome, {{ players[0].name }}!</h3>
+        <div class="game-board">
+          <!-- Add a condition to show player's name -->
+          <div *ngIf="players">
+            <p>Player: {{ players[0].name }}</p>
+          </div>
+          <div class="row" id="board">
+            <div *ngFor="let card of cards" id="{{card.name}}" class="click panel col-lg-2" (click)="flipCard($event)">
+              <div class="front">
+                <img [src]="card.image" width="150" height="150" style="opacity: .125;">
+              </div>
+              <div class="back">
+                <img [src]="card.image" width="150" height="150">
+              </div>
+            </div>
+          </div>
+          <div id="alert"></div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="modal fade" id="winModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-body">
+            <h1 id="modal-headline"></h1>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+  </div>
+  

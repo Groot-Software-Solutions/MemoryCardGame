@@ -1,0 +1,9 @@
+<div class="click panel col-lg-2" (click)="cardClicked.emit(piece.Name)">
+    <div class="front">
+      <img [src]="piece.image" width="150" height="150" style="opacity: .125;">
+    </div>
+    <div class="back">
+      <img [src]="piece.image" width="150" height="150">
+    </div>
+  </div>
+  
