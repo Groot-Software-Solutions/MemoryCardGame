@@ -1,103 +1,189 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
 import { Subscription } from 'rxjs';
 import { MemoryCardGameService } from 'src/app/Services/memory-card-game.service';
 
 @Component({
   selector: 'app-game',
   templateUrl: './game.component.html',
-  styleUrls: ['./game.component.css']
+  styleUrls: ['./game.component.css'],
 })
-export class GameComponent {
-  playerJoinedSubscription!: Subscription;
-  playerFindCard!: Subscription;
-  playerCard!: Subscription;
+
+export class GameComponent implements OnInit, OnDestroy {
+  // Flag
+  gameStarted: boolean = false;
+  showWaitingListMessage: boolean = false;
+
+  //Data
   players: any[] = [];
   cards: any[] = [];
-  boardPieces!: any[];
-  gameStarted: boolean = false;
 
-  constructor(private signalRService: MemoryCardGameService) { }
+  // Subscriptions
+  playerCardSubscription!: Subscription;
+  private playerExistsSubscription!: Subscription;
+  private waitingListSubscription!: Subscription;
+  private showMatchSubscription!: Subscription;
+  private playerJoinedSubscription!: Subscription;
+  private playerFindCard!: Subscription;
+
+  constructor(
+    private memoryCardGameService: MemoryCardGameService,
+    private toastr: ToastrService
+  ) { }
 
   ngOnInit(): void {
-    // Fetch initial game data from API
-    // this.signalRService.getInitialBoard().subscribe((data: any) => {
-    //   this.boardPieces = data.Board.Pieces;
-    // });
+    this.isPlayerExist;
 
-    // Start SignalR connection
-    // this.signalRService.startConnection();
+    //Check for Player waitng
+    this.isPlayerWaiting;
 
-
+    // Subscribe to showMatch event
+    this.showMatchSubscription =
+      this.memoryCardGameService.showMatchSubscriber.subscribe(
+        ({ card, winner }) => {
+          this.showCardMatchHandler(card, winner);
+        }
+      );
   }
 
-  resetFlip(){
-    this.signalRService.resetFlipCardSubscribe$.subscribe((data:any) =>{
-      console.log(data)
-    })
+  ngOnDestroy(): void {
+    // Unsubscribe from subscriptions to avoid memory leaks
+    this.unsubscribeSubscriptions();
   }
-  joinGame() {
-    const username = (document.getElementById('usernameTb') as HTMLInputElement).value;
-    this.signalRService.joinGame(username);
-      this.playerJoinedSubscription = this.signalRService.playerJoined$.subscribe((player: any) => {
-        this.players.push(player);
 
-      this.gameStarted = true;
-    });
-    this.playerCard = this.signalRService.build$.subscribe((player: any) => {
-
-      this.cards = player.board.pieces.map((card: any) => {
-        return { ...card, image: `assets/${card.image}` };
+  get isPlayerExist() {
+    // Subscribe to playerExists event
+    return this.playerExistsSubscription =
+      this.memoryCardGameService.playerExistsSubscriber.subscribe(() => {
+        // Handle Message for playerExists
+        this.toastr.error("Sorry, that username is already in use. Please choose a different one.");
       });
-
-      // this.players.push(player);
-      console.log(player);
-
-
-      this.gameStarted = true;
-    });
-
   }
 
-  flipCard(event: any) {
-    console.log(event, "event");
+  get isPlayerWaiting() {
+    // Subscribe to waitingList event
+    return this.waitingListSubscription =
+      this.memoryCardGameService.waitingListSubscriber.subscribe(() => {
+        this.showWaitingListMessage = true;
+        if (this.showWaitingListMessage) {
+          this.toastr.info("At this time there is not an opponent. As soon as one joins your game will begin.");
+        }
+      });
+  }
+
+  onJoinGameClick() {
+    // Retrieve username from input field
+    const username = (document.getElementById('usernameTb') as HTMLInputElement).value;
+    this.memoryCardGameService.joinGame(username);
+
+    // Subscribe to playerJoined event
+    this.playerJoinedSubscription =
+      this.memoryCardGameService.playerJoinedSubscriber.subscribe(
+        (player: any) => {
+          this.players.push(player);
+          this.gameStarted = true;
+          this.showWaitingListMessage = false; // Hide waiting list message once game starts
+        }
+      );
+
+    // Subscribe to buildBoard event
+    this.playerCardSubscription = this.memoryCardGameService.buildBoardSubscriber.subscribe(
+      (player: any) => {
+        this.cards = player.board.pieces.map((card: any) => {
+          return { ...card, image: `assets/${card.image}` };
+        });
+        this.gameStarted = true;;
+        this.showWaitingListMessage = false; // Hide waiting list message once game starts
+      }
+    );
+  }
+
+  onFlipCardClick(event: any) {
+    // Logic for flipping cards
     let getCardClass = event.currentTarget.classList;
     let getCardIdName = event.currentTarget.id;
-    let isCardMatchClassAvailable = getCardClass.contains("match");
-    let isCardFlipClassAvailable = getCardClass.contains("flip");
-
+    let isCardMatchClassAvailable = getCardClass.contains('match');
+    let isCardFlipClassAvailable = getCardClass.contains('flip');
 
     if (!(isCardMatchClassAvailable && isCardFlipClassAvailable)) {
-      debugger
-      console.log(this.players,"players");
-      
-      this.signalRService.Flip(getCardIdName,this.players[0].name);
-       
+      console.log(this.players, 'players');
+      this.memoryCardGameService.flipCardHandler(
+        getCardIdName,
+        this.players[0].name
+      );
     }
-    this.signalRService.flipCardSubscribe$.subscribe((data:any)=>{
-      debugger
-      let containerReference = document.getElementById("card-" + data.id);
-      containerReference?.classList.add("flip");
-      containerReference?.classList.add("match");
-        
-      console.log(data,"data");
-      console.log(containerReference,"contain");
-      });
 
-    this.signalRService.resetFlipCardSubscribe$.subscribe((data:any)=>{
-      console.log("data",data);
-      
-      var cA =  document.getElementById("card-" + data.cardA.id);
-      var cB =  document.getElementById("card-" + data.cardB.id);
-     
-      var delay = setTimeout(function () {
-          cA?.classList.remove("flip");
-          cB?.classList.remove("flip");
+    this.memoryCardGameService.flipCardSubscriber.subscribe((data: any) => {
+      let containerReference = document.getElementById('card-' + data.id);
+      containerReference?.classList.add('flip');
+      containerReference?.classList.add('match');
+    });
+
+    this.resetFlip();
+  }
+
+  resetFlip() {
+    this.memoryCardGameService.resetFlipCardSubscribe.subscribe((data: any) => {
+      let cardA = document.getElementById('card-' + data.cardA.id);
+      let cardB = document.getElementById('card-' + data.cardB.id);
+      setTimeout(function () {
+        cardA?.classList.remove('flip');
+        cardB?.classList.remove('flip');
       }, 1500);
-      });
+    });
+  }
+
+  showCardMatchHandler(card: any, winner: string): void {
+    // Handle showMatch event
+    // Update UI, display messages, etc.
+    console.log(`Match found! Card: ${card}, Winner: ${winner}`);
+    const cardElement = document.getElementById(card.id);
+    if (cardElement) {
+      cardElement.classList.add('match');
+    }
+
+    const alertElement = document.getElementById('alert');
+    if (alertElement) {
+      alertElement.innerHTML = `<strong>Yay</strong> ${winner} found a match!`;
+    }
+
+    let data = document.getElementById('usernameTb');
+    console.log(data);
+
+    if (
+      winner ===
+      (document.getElementById('usernameTb') as HTMLInputElement).value
+    ) {
+      const winsElement = document.getElementById('wins');
+      console.log(winsElement, 'test');
+
+      if (winsElement) {
+        winsElement.innerHTML += `<li><img src='${card.image}' width='30' height='30'></li>`;
+      }
+    }
   }
 
   checkCard(cardId: string) {
-    //this.signalRService.checkCard(cardId);
+    // Get username from input field
+    const username = (document.getElementById('usernameTb') as HTMLInputElement).value;
+    console.log(username, 'username');
+
+    // Call checkCard method of MemoryCardGameService
+    this.memoryCardGameService.checkCard(cardId, username);
   }
 
+  private unsubscribeSubscriptions() {
+    this.unsubscribe(this.playerFindCard);
+    this.unsubscribe(this.playerFindCard);
+    this.unsubscribe(this.playerJoinedSubscription);
+    this.unsubscribe(this.playerExistsSubscription);
+    this.unsubscribe(this.waitingListSubscription);
+    this.unsubscribe(this.showMatchSubscription);
+  }
+
+  private unsubscribe(subscription: Subscription) {
+    if (subscription && !subscription.closed) {
+      subscription.unsubscribe();
+    }
+  }
 }

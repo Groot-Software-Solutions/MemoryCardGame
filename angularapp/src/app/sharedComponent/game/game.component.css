@@ -1,3 +1,20 @@
+.cardContainer {
+    display: flex;
+    justify-content: center;
+}
+
+.cardBoardContainer {
+    width: fit-content;
+    gap: 1rem;
+}
+
+.card {
+    align-items: center;
+    width: 25rem;
+    height: auto;
+    text-align: center;
+}
+
 .panel {
     float: left;
     width: 130px;
@@ -13,7 +30,8 @@
 }
 
 .panel img {
-    width: 130px; height: auto;
+    width: 130px;
+    height: auto;
 }
 
 /* -- make sure to declare a default for every property that you want animated -- */
@@ -72,7 +90,7 @@
     width: inherit;
     height: inherit;
     background: #333;
-    text-shadow: 1px  1px 1px rgba(0,0,0,0.6);
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.6);
 
     transform: rotateY(-180deg);
     transform-style: preserve-3d;

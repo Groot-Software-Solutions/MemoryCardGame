@@ -1,130 +1,127 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { HubConnection } from '@microsoft/signalr';
+import { ToastrService } from 'ngx-toastr';
+import { Subject } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
+
 export class MemoryCardGameService {
-  private hubConnection!: HubConnection;
-  hubUrl: string;
-  connection: any;
-  public playerJoined$ = new Subject<any>();
-  public FindCard$ = new Subject<any>();
-  public build$ = new Subject<any>();
- public cardFlipSubscribe$ = new Subject<any>();
- public flipCardSubscribe$ = new Subject<any>();
- public resetFlipCardSubscribe$ = new Subject<any>();
+  signalRConnection: any;
+  hubConnection!: HubConnection;
+  baseHubUrlConnection: string = "https://localhost:7176/gameshub";
 
-  constructor(private http: HttpClient) {
-    this.hubUrl = 'https://localhost:7176/gameshub';
-  }
+  // Subjects for communication with components
+  playerJoinedSubscriber = new Subject<any>();
+  findCardSubscriber = new Subject<any>();
+  buildBoardSubscriber = new Subject<any>();
+  flipSubscriber = new Subject<any>();
+  flipCardSubscriber = new Subject<any>();
+  resetFlipCardSubscribe = new Subject<any>();
+  playerExistsSubscriber = new Subject<void>();
+  waitingListSubscriber = new Subject<void>();
+  showMatchSubscriber = new Subject<any>();
+  winnerSubscriber = new Subject<any>();
 
-  public async initiateSignalrConnection(): Promise<void> {
+  constructor(
+    private http: HttpClient,
+    private toastr: ToastrService
+  ) { }
+
+  async initiateSignalrConnection(): Promise<void> {
     try {
-      this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(this.hubUrl)
+      // Create and start SignalR connection
+      this.signalRConnection = new signalR.HubConnectionBuilder()
+        .withUrl(this.baseHubUrlConnection)
         .withAutomaticReconnect()
         .build();
 
-      await this.connection.start({ withCredentials: false })
-      this.connection.on('playerJoined', (data: any) => {
+      await this.signalRConnection.start({ withCredentials: false });
 
-        this.playerJoined$.next(data)
-      });
-      this.connection.on('FindCard', (data: any) => {
+      // Set up event handlers for incoming messages
+      this.setupEventHandlers();
 
-        this.FindCard$.next(data)
-      });
-      this.connection.on('buildBoard', (data: any) => {
-
-        this.build$.next(data)
-      });
-      this.connection.on('flipCard', (data: any) => {
-
-        this.flipCardSubscribe$.next(data)
-      });
-
-
-      this.connection.on('resetFlip', (cardA: any, cardB:any) => {
-
-        this.resetFlipCardSubscribe$.next({cardA,cardB})
-      });
-
-
-      console.log(`SignalR connection success! connectionId: ${this.connection.connectionId}`);
+      //Handle Message for sucessfully SignalR Connection
+      this.toastr.success(`SignalR Connected Sucessfully. ConnectionId: ${this.signalRConnection.connectionId}`);
+      console.log(`SignalR Connected Sucessfully. ConnectionId: ${this.signalRConnection.connectionId}`);
     }
     catch (error) {
+      //Handle Message for error in SignalR Connection
+      this.toastr.success(`SignalR connection error: ${error}`);
       console.log(`SignalR connection error: ${error}`);
     }
   }
-  Flip(idName: string , userName:string) {
-    debugger
 
-    this.cardFlipSubscribe$ = this.connection.invoke('flip', idName,userName)
+  private setupEventHandlers(): void {
+    // Handle events received from SignalR server
+    this.signalRConnection.on('playerJoined', (data: any) => {
+      this.playerJoinedSubscriber.next(data);
+    });
+
+    this.signalRConnection.on('FindCard', (data: any) => {
+      this.findCardSubscriber.next(data);
+    });
+
+    this.signalRConnection.on('buildBoard', (data: any) => {
+      this.buildBoardSubscriber.next(data);
+    });
+
+    this.signalRConnection.on('flipCard', (data: any) => {
+      this.flipCardSubscriber.next(data);
+    });
+
+    this.signalRConnection.on('resetFlip', (cardA: any, cardB: any) => {
+      this.resetFlipCardSubscribe.next({ cardA, cardB });
+    });
+
+    this.signalRConnection.on('playerExists', () => {
+      this.playerExistsSubscriber.next();
+    });
+
+    this.signalRConnection.on('waitingList', () => {
+      this.waitingListSubscriber.next();
+    });
+
+    this.signalRConnection.on('showMatch', (card: any, winner: string) => {
+      this.showMatchSubscriber.next({ card, winner });
+    });
+  }
+
+  // Method to initiate a flip of a card
+  flipCardHandler(idName: string, userName: string): void {
+    this.flipSubscriber = this.signalRConnection.invoke('flip', idName, userName)
       .then((result: boolean) => {
         if (result) {
-          console.log("result",result);
-          
-          this.checkCard(idName,userName);
+          this.checkCard(idName, userName);
         }
       })
-      .catch((err: any) => console.error('Error while invoking "flip" method: ', err));
-
-    // this.cardFlipSubscribe$ = this.connection.invoke('Flip', idName,userName);
-
+      .catch((err: any) =>
+        console.error('Error while invoking "flip" method: ', err)
+      );
   }
 
-  // checkCardMatch(idName: string) {
-  //   debugger
-  //   this.connection.invoke('checkCard', idName);
-  // }
-
+  // Method to get initial game board
   getInitialBoard() {
-    return this.http.get(this.hubUrl);
+    return this.http.get(this.baseHubUrlConnection);
   }
 
-  // joinGame(username: string): void {
-  //   
-  //      this.hubConnection.invoke('Join', username)
-  //       .catch(err => console.error(err));
-  //    }
-
+  // Method to flip a card
   flipCard(cardName: string): void {
     this.hubConnection.invoke('Flip', cardName)
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   }
 
-
-
+  // Method to check a card
   checkCard(cardName: string, username: string): void {
-    this.connection.invoke('CheckCard', cardName, username)
-      .catch((err:any) => console.error(err));
+    this.signalRConnection.invoke('CheckCard', cardName, username)
+      .catch((err: any) => console.error(err));
   }
 
-
+  // Method to join the game
   joinGame(username: string) {
-
-    this.connection
-      .invoke('Join', username)
-  };
+    this.signalRConnection.invoke('Join', username);
+  }
 }
-
-
-// joinGame(username: string): void {
-//   this.hubConnection.invoke('Join', username)
-//     .catch(err => console.error(err));
-// }
-
-// flipCard(cardName: string): void {
-//   this.hubConnection.invoke('Flip', cardName)
-//     .catch(err => console.error(err));
-// }
-
-// checkCard(cardName: string): void {
-//   this.hubConnection.invoke('CheckCard', cardName)
-//     .catch(err => console.error(err));
-// }
-
