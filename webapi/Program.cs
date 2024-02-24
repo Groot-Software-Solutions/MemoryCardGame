@@ -7,13 +7,13 @@ builder.Services.AddSignalR();
 builder.Services.AddCors(options => {
     options.AddPolicy("CORSPolicy", builder => builder.AllowAnyMethod().AllowAnyHeader().AllowCredentials().SetIsOriginAllowed((hosts) => true));
 });
-builder.Services.AddSingleton<GameState>(provider =>
+builder.Services.AddSingleton(provider =>
 {
     var hubContext = provider.GetRequiredService<IHubContext<GameHub>>();
 
     return new GameState(hubContext);
 });
-builder.Services.AddSingleton<GameState>();
+//builder.Services.AddSingleton<GameState>();
 builder.Services.AddControllers();
 
 
@@ -35,9 +35,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors("CORSPolicy");
 app.UseRouting();
 
-app.UseEndpoints(endpoints => {
-    endpoints.MapControllers();
-    endpoints.MapHub<GameHub>("/gameshub");
+app.UseEndpoints(endpoints =>
+{
+    _ = endpoints.MapHub<GameHub>("/gameshub");
 });
 
 app.UseHttpsRedirection();

@@ -23,7 +23,7 @@ public class Board
                     Id = i,
                     Pair = i + 1,
                     Name = "card-" + i.ToString(),
-                    Image = string.Format("/content/img/{0}.png", imgIndex)
+                    Image = string.Format("/assets/content/img/{0}.png", imgIndex)
                 });
             else
             {
@@ -32,7 +32,7 @@ public class Board
                     Id = i,
                     Pair = i - 1,
                     Name = "card-" + i.ToString(),
-                    Image = string.Format("/content/img/{0}.png", imgIndex)
+                    Image = string.Format("/assets/content/img/{0}.png", imgIndex)
                 });
                 imgIndex++;
             }

@@ -38,13 +38,13 @@ public class GameState
                      .Select(b => b.ToString("x2")));
     }
 
-    public Player GetPlayer(string userName)
+    public Player? GetPlayer(string userName)
     {
         return _players.Values.FirstOrDefault(u => u.Name == userName);
 
     }
 
-    public Player GetNewOpponent(Player player)
+    public Player? GetNewOpponent(Player player)
     {
         return _players.Values.FirstOrDefault((u => !u.IsPlaying && u.Id != player.Id));
     }

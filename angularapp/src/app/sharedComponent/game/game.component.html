@@ -13,14 +13,21 @@
     <!-- Display game board if game has started -->
     <div *ngIf="gameStarted">
       <!-- Display player's name -->
-      <h3>Welcome, {{ players[0]?.name }}!</h3>
+      <h3>Welcome, <span id="spanusernameTb"> {{ players[0]?.name }}</span>!</h3>
 
       <div class="game-board">
         <!-- Display player's name -->
         <div *ngIf="players">
           <p>Player: {{ players[0]?.name }}</p>
         </div>
+        <h3>Matches</h3>
+        <!-- Display match alert -->
+        <div id="alert"></div>
 
+
+        <ul id="wins" class="list-inline d-inline-flex">
+
+        </ul>
         <!-- Display cards on the game board -->
         <div class="row cardBoardContainer" id="board">
           <div *ngFor="let card of cards" [id]="'card-' + card.id" class="click panel col-lg-2"
@@ -36,11 +43,7 @@
           </div>
         </div>
 
-        <!-- Display match alert -->
-        <div id="alert"></div>
 
-        <!-- Display list of wins -->
-        <ul id="wins"></ul>
       </div>
 
       <!-- Display waiting list message -->

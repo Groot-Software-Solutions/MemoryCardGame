@@ -1,1 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+.list-inline li {
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-bottom: 6px;
+}

@@ -15,9 +15,9 @@ export class GameComponent implements OnInit, OnDestroy {
   showWaitingListMessage: boolean = false;
 
   //Data
-  players: any[] = [];
-  cards: any[] = [];
-
+  players: any = [];
+  cards: any = [];
+  userId: string = "";
   // Subscriptions
   playerCardSubscription!: Subscription;
   private playerExistsSubscription!: Subscription;
@@ -25,7 +25,7 @@ export class GameComponent implements OnInit, OnDestroy {
   private showMatchSubscription!: Subscription;
   private playerJoinedSubscription!: Subscription;
   private playerFindCard!: Subscription;
-
+  private winnerSubscription!: Subscription;
   constructor(
     private memoryCardGameService: MemoryCardGameService,
     private toastr: ToastrService
@@ -42,6 +42,13 @@ export class GameComponent implements OnInit, OnDestroy {
       this.memoryCardGameService.showMatchSubscriber.subscribe(
         ({ card, winner }) => {
           this.showCardMatchHandler(card, winner);
+        }
+      );
+
+    this.winnerSubscription =
+      this.memoryCardGameService.winnerSubscriber.subscribe(
+        ({ card, winner }) => {
+          this.winnerHandler(card, winner);
         }
       );
   }
@@ -80,6 +87,8 @@ export class GameComponent implements OnInit, OnDestroy {
     this.playerJoinedSubscription =
       this.memoryCardGameService.playerJoinedSubscriber.subscribe(
         (player: any) => {
+          console.log("playerplayer", player);
+          this.userId = player.id;
           this.players.push(player);
           this.gameStarted = true;
           this.showWaitingListMessage = false; // Hide waiting list message once game starts
@@ -90,10 +99,19 @@ export class GameComponent implements OnInit, OnDestroy {
     this.playerCardSubscription = this.memoryCardGameService.buildBoardSubscriber.subscribe(
       (player: any) => {
         this.cards = player.board.pieces.map((card: any) => {
-          return { ...card, image: `assets/${card.image}` };
+          return { ...card, image: `${card.image}` };
         });
-        this.gameStarted = true;;
+        this.gameStarted = true;
         this.showWaitingListMessage = false; // Hide waiting list message once game starts
+        console.log("sadsadadas", player);
+
+        const alertElement = (document.getElementById('alert')) as HTMLDivElement;
+        if (alertElement && this.userId == player.whosTurn) {
+          alertElement.innerHTML = "Let's begin the game.  You get to go first!";
+        } else if (alertElement) {
+          alertElement.innerHTML = "Let's begin the game.  Your opponent gets to go first!";
+        }
+
       }
     );
   }
@@ -152,7 +170,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     if (
       winner ===
-      (document.getElementById('usernameTb') as HTMLInputElement).value
+      (document.getElementById('spanusernameTb') as HTMLSpanElement)?.innerText
     ) {
       const winsElement = document.getElementById('wins');
       console.log(winsElement, 'test');
@@ -162,7 +180,36 @@ export class GameComponent implements OnInit, OnDestroy {
       }
     }
   }
+  winnerHandler(card: any, winner: string): void {
+    // Handle showMatch event
+    // Update UI, display messages, etc.
+    console.log(`Match found! Card: ${card}, Winner: ${winner}`);
+    const cardElement = document.getElementById(card.id);
+    if (cardElement) {
+      cardElement.classList.add('match');
+    }
 
+    const alertElement = document.getElementById('alert');
+    if (alertElement) {
+      alertElement.innerHTML = `<strong>Yay</strong> ${winner} found a match!`;
+    }
+
+    let data = document.getElementById('usernameTb');
+    console.log(data);
+
+    if (
+      winner ===
+      (document.getElementById('spanusernameTb') as HTMLSpanElement)?.innerText
+    ) {
+      alert("you win")
+    }
+    else {
+      alert("you lost")
+    }
+
+
+
+  }
   checkCard(cardId: string) {
     // Get username from input field
     const username = (document.getElementById('usernameTb') as HTMLInputElement).value;

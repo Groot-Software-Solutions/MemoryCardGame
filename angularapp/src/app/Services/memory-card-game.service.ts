@@ -88,6 +88,10 @@ export class MemoryCardGameService {
     this.signalRConnection.on('showMatch', (card: any, winner: string) => {
       this.showMatchSubscriber.next({ card, winner });
     });
+
+    this.signalRConnection.on('winner', (card: any, winner: string) => {
+      this.winnerSubscriber.next({ card, winner });
+    });
   }
 
   // Method to initiate a flip of a card

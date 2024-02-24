@@ -76,7 +76,7 @@ public class GameHub : Hub<IGameHub>
 
     private Card FindCard(Game game, string cardName)
     {
-        return game.Board.Pieces.FirstOrDefault(c => c.Name == cardName);
+        return  game.Board.Pieces.FirstOrDefault(c => c.Name == cardName);
     }
 
     public async Task<bool> CheckCard(string cardName , string userName)
